@@ -1,68 +1,58 @@
-import Map from 'https://cdn.skypack.dev/ol/Map.js';
-import View from 'https://cdn.skypack.dev/ol/View.js';
-import TileLayer from 'https://cdn.skypack.dev/ol/layer/Tile.js';
-import OSM from 'https://cdn.skypack.dev/ol/source/OSM.js';
-import Overlay from 'https://cdn.skypack.dev/ol/Overlay.js';
-import { toLonLat, fromLonLat } from 'https://cdn.skypack.dev/ol/proj.js';
-import Feature from 'https://cdn.skypack.dev/ol/Feature.js';
-import Point from 'https://cdn.skypack.dev/ol/geom/Point.js';
-import VectorSource from 'https://cdn.skypack.dev/ol/source/Vector.js';
-import VectorLayer from 'https://cdn.skypack.dev/ol/layer/Vector.js';
-import { Style, Icon } from 'https://cdn.skypack.dev/ol/style.js';
+import 'https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js';
 
 // Inisialisasi peta
-const map = new Map({
+const map = new ol.Map({
   target: 'map',
   layers: [
-    new TileLayer({
-      source: new OSM(),
+    new ol.layer.Tile({
+      source: new ol.source.OSM(),
     }),
   ],
-  view: new View({
-    center: fromLonLat([0, 0]), // Default center
+  view: new ol.View({
+    center: ol.proj.fromLonLat([0, 0]), // Default lokasi
     zoom: 2,
   }),
 });
 
-// Pop-up untuk informasi lokasi
+// Overlay pop-up untuk info lokasi
 const popup = document.createElement('div');
 popup.className = 'popup';
 document.body.appendChild(popup);
 
-const overlay = new Overlay({
+const overlay = new ol.Overlay({
   element: popup,
   autoPan: true,
 });
 map.addOverlay(overlay);
 
-// Sumber data marker
-const markerSource = new VectorSource();
-const markerLayer = new VectorLayer({
+// Marker untuk lokasi pengguna
+const markerSource = new ol.source.Vector();
+const markerLayer = new ol.layer.Vector({
   source: markerSource,
 });
 map.addLayer(markerLayer);
 
-// Fungsi untuk memperbarui lokasi
+// Fungsi untuk mendapatkan lokasi pengguna
 function updateLocation() {
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const { latitude, longitude } = pos.coords;
+      const userCoordinates = ol.proj.fromLonLat([longitude, latitude]);
 
-      // Pindahkan peta ke lokasi pengguna
-      const userCoordinates = fromLonLat([longitude, latitude]);
+      // Update tampilan peta
       map.getView().setCenter(userCoordinates);
       map.getView().setZoom(18);
 
       // Hapus marker lama jika ada
       markerSource.clear();
 
-      // Tambahkan marker di lokasi pengguna
-      const marker = new Feature({
-        geometry: new Point(userCoordinates),
+      // Tambahkan marker baru
+      const marker = new ol.Feature({
+        geometry: new ol.geom.Point(userCoordinates),
       });
       marker.setStyle(
-        new Style({
-          image: new Icon({
+        new ol.style.Style({
+          image: new ol.style.Icon({
             src: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
             scale: 0.05,
           }),
@@ -70,7 +60,7 @@ function updateLocation() {
       );
       markerSource.addFeature(marker);
 
-      // Ambil informasi lokasi menggunakan API OpenStreetMap
+      // Ambil informasi lokasi menggunakan OpenStreetMap
       fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lon=${longitude}&lat=${latitude}`)
         .then((response) => response.json())
         .then((data) => {
@@ -99,7 +89,7 @@ function updateLocation() {
   );
 }
 
-// Jalankan pertama kali
+// Jalankan saat pertama kali
 updateLocation();
 
 // Event listener untuk tombol refresh lokasi
