@@ -24,7 +24,7 @@ const map = new Map({
   }),
 });
 
-// Pop-up untuk informasi lokasi
+// Elemen popup
 const popup = document.createElement('div');
 popup.className = 'popup';
 document.body.appendChild(popup);
@@ -35,61 +35,87 @@ const overlay = new Overlay({
 });
 map.addOverlay(overlay);
 
-// Sumber data marker
+// Sumber marker
 const markerSource = new VectorSource();
 const markerLayer = new VectorLayer({
   source: markerSource,
 });
 map.addLayer(markerLayer);
 
-// Ambil lokasi pengguna
-navigator.geolocation.getCurrentPosition(
-  (pos) => {
-    const { latitude, longitude } = pos.coords;
+// Fungsi untuk memperbarui lokasi pengguna
+function updateLocation() {
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
 
-    // Pindahkan peta ke lokasi pengguna
-    const userCoordinates = fromLonLat([longitude, latitude]);
-    map.getView().setCenter(userCoordinates);
-    map.getView().setZoom(20);
+      // Pindahkan peta ke lokasi pengguna
+      const userCoordinates = fromLonLat([longitude, latitude]);
+      map.getView().setCenter(userCoordinates);
+      map.getView().setZoom(20);
 
-    // Tambahkan marker di lokasi pengguna
-    const marker = new Feature({
-      geometry: new Point(userCoordinates),
-    });
-    marker.setStyle(
-      new Style({
-        image: new Icon({
-          src: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-          scale: 0.05,
-        }),
-      })
-    );
-    markerSource.addFeature(marker);
+      // Hapus marker lama
+      markerSource.clear();
 
-    // Ambil informasi lokasi menggunakan API OpenStreetMap
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lon=${longitude}&lat=${latitude}`)
-      .then((response) => response.json())
-      .then((data) => {
-        const locationName = data.display_name || 'Tidak ada data lokasi';
-        popup.innerHTML = `
-          <div>
-            <strong>Lokasi Anda:</strong><br />
-            ${locationName}<br />
-            <strong>Koordinat:</strong> ${longitude.toFixed(6)}, ${latitude.toFixed(6)}
-          </div>`;
-        overlay.setPosition(userCoordinates);
-      })
-      .catch(() => {
-        popup.innerHTML = `
-          <div>
-            <strong>Lokasi Anda:</strong><br />
-            Data lokasi tidak ditemukan.<br />
-            <strong>Koordinat:</strong> ${longitude.toFixed(6)}, ${latitude.toFixed(6)}
-          </div>`;
-        overlay.setPosition(userCoordinates);
+      // Tambahkan marker baru
+      const marker = new Feature({
+        geometry: new Point(userCoordinates),
       });
-  },
-  () => {
-    alert('Gagal mengambil lokasi. Pastikan Anda memberikan izin akses lokasi.');
-  }
-);
+      marker.setStyle(
+        new Style({
+          image: new Icon({
+            src: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+            scale: 0.05,
+          }),
+        })
+      );
+      markerSource.addFeature(marker);
+
+      // Ambil informasi lokasi menggunakan API OpenStreetMap
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lon=${longitude}&lat=${latitude}`)
+        .then((response) => response.json())
+        .then((data) => {
+          const locationName = data.display_name || 'Tidak ada data lokasi';
+          popup.innerHTML = `
+            <div>
+              <strong>Lokasi Anda:</strong><br />
+              ${locationName}<br />
+              <strong>Koordinat:</strong> ${longitude.toFixed(6)}, ${latitude.toFixed(6)}
+            </div>`;
+          overlay.setPosition(userCoordinates);
+        })
+        .catch(() => {
+          popup.innerHTML = `
+            <div>
+              <strong>Lokasi Anda:</strong><br />
+              Data lokasi tidak ditemukan.<br />
+              <strong>Koordinat:</strong> ${longitude.toFixed(6)}, ${latitude.toFixed(6)}
+            </div>`;
+          overlay.setPosition(userCoordinates);
+        });
+    },
+    () => {
+      alert('Gagal mengambil lokasi. Pastikan Anda memberikan izin akses lokasi.');
+    }
+  );
+}
+
+// Panggil pertama kali saat halaman dimuat
+updateLocation();
+
+// Event listener untuk tombol Refresh Lokasi
+document.getElementById('refresh-location').addEventListener('click', updateLocation);
+
+// Event listener untuk tombol Share Lokasi
+document.getElementById('share-location').addEventListener('click', () => {
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+      const shareUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+      navigator.clipboard.writeText(shareUrl);
+      alert('Lokasi Anda telah disalin! Bagikan link ini:\n' + shareUrl);
+    },
+    () => {
+      alert('Gagal mendapatkan lokasi.');
+    }
+  );
+});
