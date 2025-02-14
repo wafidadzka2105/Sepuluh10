@@ -24,7 +24,7 @@ const map = new Map({
   }),
 });
 
-// Elemen popup
+// Pop-up untuk informasi lokasi
 const popup = document.createElement('div');
 popup.className = 'popup';
 document.body.appendChild(popup);
@@ -35,14 +35,14 @@ const overlay = new Overlay({
 });
 map.addOverlay(overlay);
 
-// Sumber marker
+// Sumber data marker
 const markerSource = new VectorSource();
 const markerLayer = new VectorLayer({
   source: markerSource,
 });
 map.addLayer(markerLayer);
 
-// Fungsi untuk memperbarui lokasi pengguna
+// Fungsi untuk memperbarui lokasi
 function updateLocation() {
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -51,12 +51,12 @@ function updateLocation() {
       // Pindahkan peta ke lokasi pengguna
       const userCoordinates = fromLonLat([longitude, latitude]);
       map.getView().setCenter(userCoordinates);
-      map.getView().setZoom(20);
+      map.getView().setZoom(18);
 
-      // Hapus marker lama
+      // Hapus marker lama jika ada
       markerSource.clear();
 
-      // Tambahkan marker baru
+      // Tambahkan marker di lokasi pengguna
       const marker = new Feature({
         geometry: new Point(userCoordinates),
       });
@@ -99,20 +99,25 @@ function updateLocation() {
   );
 }
 
-// Panggil pertama kali saat halaman dimuat
+// Jalankan pertama kali
 updateLocation();
 
-// Event listener untuk tombol Refresh Lokasi
+// Event listener untuk tombol refresh lokasi
 document.getElementById('refresh-location').addEventListener('click', updateLocation);
 
-// Event listener untuk tombol Share Lokasi
+// Event listener untuk tombol share lokasi
 document.getElementById('share-location').addEventListener('click', () => {
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const { latitude, longitude } = pos.coords;
-      const shareUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-      navigator.clipboard.writeText(shareUrl);
-      alert('Lokasi Anda telah disalin! Bagikan link ini:\n' + shareUrl);
+      const locationLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+      // Salin link ke clipboard
+      navigator.clipboard.writeText(locationLink).then(() => {
+        alert('Lokasi telah disalin ke clipboard!\nBagikan link ini ke teman: ' + locationLink);
+      }).catch(() => {
+        alert('Gagal menyalin lokasi. Coba salin secara manual: ' + locationLink);
+      });
     },
     () => {
       alert('Gagal mendapatkan lokasi.');
